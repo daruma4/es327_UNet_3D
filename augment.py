@@ -16,8 +16,8 @@ def do_albumentations(transform, img_list, mask_list):
     augmented_mask_list = []
     for idx in idxs:
         curr_image = cv2.cvtColor(img_list[idx], cv2.COLOR_BGR2RGB)
-        transformed = TRANSFORM(image=curr_image, mask=mask_list[idx])
-        transformed2 = TRANSFORM(image=curr_image, mask=mask_list[idx])
+        transformed = transform(image=curr_image, mask=mask_list[idx])
+        transformed2 = transform(image=curr_image, mask=mask_list[idx])
 
         augemented_raw_list.append(curr_image)
         augemented_raw_list.append(transformed["image"])

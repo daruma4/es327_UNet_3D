@@ -83,28 +83,28 @@ def main_augmentation():
      aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array)
      niftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
      niftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
-# ################################
-# #||                          #||
-# #||         Trainer          #||
-# #||                          #||
-# ################################
-# unetObj = trainer.UNetTrainer(img_height=256, img_width=256, img_channels=1,epochs=10)
-# raw_images = unetObj.folder_to_array(PATH_TO_SAVE_AUG_RAW, unetObj.img_width, unetObj.img_height)
-# mask_images = unetObj.folder_to_array(PATH_TO_SAVE_AUG_MASK, unetObj.img_width, unetObj.img_height)
-# print("[L] Images to Array completed.")
+################################
+#||                          #||
+#||         Trainer          #||
+#||                          #||
+################################
+def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=16, learning_rate=0.0001):
+     #Should setup to change filter_num, batch_size and 
+     unetObj = trainer.UNetTrainer(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
+     aug_images = niftiSave.load_images(PATH_AUG_IMAGE)
+     aug_masks = niftiSave.load_images(PATH_AUG_MASK)
 
-# myModel = unetObj.create_unet_model()
-# print("[L] Model created.")
-# # myModel.compile(optimizer="adam", loss=unetObj.dice_coef_loss, metrics=[unetObj.iou, unetObj.dice_coef, unetObj.precision, unetObj.recall, unetObj.accuracy])
-# myModel.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"]) 
-# print("[L] Model compile created.")
+     myModel = unetObj.create_unet_model(filter_num=filter_num)
+     # myModel.compile(optimizer="adam", loss=unetObj.dice_coef_loss, metrics=[unetObj.iou, unetObj.dice_coef, unetObj.precision, unetObj.recall, unetObj.accuracy])
+     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+     myModel.compile(optimizer=optimizer, loss="binary_crossentropy", metrics=["accuracy"]) 
 
-# print("[L] Training model...")
-# # want loss to be 0
-# myModel_trained = myModel.fit(x=raw_images, y=mask_images, validation_split=0.25, batch_size= 16, epochs=unetObj.epochs, shuffle=True)
-# print("[L] Model trained.")
-# myModel.save("2Dunet.h5")
-# print("[L] Model saved.")
+     # want loss to be 0
+     myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True)
+     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
+     myModel.save(myModelSavePath)
+
+main_trainer(epochs=5)
 # ################################
 # #||                          #||
 # #||        Predictor         #||

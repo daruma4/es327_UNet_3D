@@ -8,7 +8,9 @@ from tensorflow.keras import models
 import tensorflow.keras.backend as K
 
 class UNetTrainer:
-    def __init__(self, img_height, img_width, img_channels, epochs):
+    def __init__(self, filter_num, img_height=256, img_width=256, img_channels=1, epochs=100):
+        self.filter_num = filter_num
+
         self.img_height = img_height
         self.img_width = img_width
         self.img_channels = img_channels
