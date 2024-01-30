@@ -130,4 +130,4 @@ def predict(model_path: str):
           subplot.set_yticks([])
      plt.show()
 
-predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
+# predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
