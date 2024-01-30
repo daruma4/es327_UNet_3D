@@ -98,13 +98,14 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.iou_loss
-     metrics = [unetObj.dice_coef_loss, unetObj.iou]
+     loss = unetObj.j_dice_coef_loss
+     ## Investigation needed - why does it train on J_dice_coef_loss and not g...
+     metrics = [unetObj.g_dice_coef_loss, unetObj.j_dice_coef_loss, unetObj.g_iou, unetObj.j_iou, unetObj.g_iou_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
      #Do fit
      myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True)
-     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate[2:]}.h5")
+     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
      myModel.save(myModelSavePath)
 
 # ################################
@@ -130,4 +131,4 @@ def predict(model_path: str):
           subplot.set_yticks([])
      plt.show()
 
-# predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
+predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
