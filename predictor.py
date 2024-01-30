@@ -27,6 +27,6 @@ class predictor:
         idx = random.randint(0, len(self.image_array))
         random_image = self.image_array[idx]
         random_mask = self.mask_array[idx]
-        random_predicted_mask = self.predict_single(random_image)
+        random_predicted_mask = self.predict_single(random_image)[0]
         
         return random_image, random_mask, random_predicted_mask

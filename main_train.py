@@ -104,28 +104,30 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
      #Do fit
      myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True)
-     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
+     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate[2:]}.h5")
      myModel.save(myModelSavePath)
 
-main_trainer(epochs=5)
 # ################################
 # #||                          #||
 # #||        Predictor         #||
 # #||                          #||
 # ################################
-# predictorObj = predictor.predictor(model=models.load_model(MODEL_NAME, compile=False), 
-#                     image_array=trainer.UNetTrainer.folder_to_array(PATH_TO_SAVE_RAW, 256, 256), 
-#                     mask_array=trainer.UNetTrainer.folder_to_array(PATH_TO_SAVE_MASK, 256, 256))
+def predict(model_path: str):
+     predictorObj = predictor.predictor(model=models.load_model(model_path, compile=False), 
+                         image_array=niftiSave.load_images(PATH_AUG_IMAGE, normalize=True), 
+                         mask_array=niftiSave.load_images(PATH_AUG_MASK, normalize=True))
 
-# ran_image, ran_mask, predicted_mask = predictorObj.random_predict()
-# fig, subplots = plt.subplots(3, 1)
-# subplots[0].imshow(ran_image, cmap='gray')
-# subplots[0].set_title(f"Image")
-# subplots[1].imshow(ran_mask, cmap='gray')
-# subplots[1].set_title(f"Mask")
-# subplots[2].imshow(np.reshape(predicted_mask, (256,256,1)), cmap='gray')
-# subplots[2].set_title(f"Predicted Mask")
-# for subplot in subplots:
-#      subplot.set_xticks([])
-#      subplot.set_yticks([])
-# plt.show()
+     ran_image, ran_mask, predicted_mask = predictorObj.random_predict()
+     fig, subplots = plt.subplots(3, 1)
+     subplots[0].imshow(ran_image, cmap='gray')
+     subplots[0].set_title(f"Image")
+     subplots[1].imshow(ran_mask, cmap='gray')
+     subplots[1].set_title(f"Mask")
+     subplots[2].imshow(np.reshape(predicted_mask, (256,256,1)), cmap='gray')
+     subplots[2].set_title(f"Predicted Mask")
+     for subplot in subplots:
+          subplot.set_xticks([])
+          subplot.set_yticks([])
+     plt.show()
+
+predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
