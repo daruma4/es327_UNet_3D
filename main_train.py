@@ -10,7 +10,7 @@ import albumentations
 
 #Local
 import niftiSave
-import model
+import unet
 import predictor
 import augment
 
@@ -91,7 +91,7 @@ def main_augmentation():
 ################################
 def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=16, learning_rate=0.0001):
      #Should setup to change filter_num, batch_size and 
-     unetObj = model.UNet(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
+     unetObj = unet.unet_model(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
      aug_images = niftiSave.load_images(PATH_AUG_IMAGE)
      aug_masks = niftiSave.load_images(PATH_AUG_MASK)
 

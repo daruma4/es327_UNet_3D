@@ -7,7 +7,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import models
 import tensorflow.keras.backend as K
 
-class UNet:
+class unet_model:
     def __init__(self, filter_num, img_height=256, img_width=256, img_channels=1, epochs=100):
         self.filter_num = filter_num
 
