@@ -1,16 +1,7 @@
 import albumentations as A
 import cv2
 
-TRANSFORM = A.Compose(
-    [
-        A.Blur(blur_limit=15, p=0.5),
-        A.HorizontalFlip(p=0.5),
-        A.VerticalFlip(p=0.5),
-        A.RandomRotate90(p=0.5)
-    ]
-)
-
-def do_albumentations(img_list, mask_list):
+def do_albumentations(transform, img_list, mask_list):
     """Does albumentation on all items in img_directory_list
 
     Args:

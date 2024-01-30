@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from keras import models
 import numpy as np
+import albumentations
 
 #Local
 import niftiSave
@@ -60,20 +61,28 @@ def main_nifti():
           
           niftiSave.save_images(save_path, metadata[nifti_file_name]["save_prefix"], data_iterable_cropped, mask_bool=mask_bool)
 
-main_nifti()
 ################################
 #||                          #||
 #||        Augmentor         #||
 #||                          #||
 ################################
 def main_augmentation():
-     image_array=niftiSave.NiftiSave.load_images(PATH_RAW_IMAGE, 256, 256)
-     mask_array=niftiSave.load_images(PATH_RAW_MASK, 256, 256)
+     AUGMENTATIONS_LIST = albumentations.Compose(
+          [
+               albumentations.Blur(blur_limit=15, p=0.5),
+               albumentations.HorizontalFlip(p=0.5),
+               albumentations.VerticalFlip(p=0.5),
+               albumentations.RandomRotate90(p=0.5)
+          ]
+     )
 
-     aug_raw, aug_mask = augment.do_albumentations(img_list=image_array, mask_list=mask_array)
-     niftiSave.NiftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
-     niftiSave.NiftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
+     image_array=niftiSave.load_images(PATH_RAW_IMAGE)
+     mask_array=niftiSave.load_images(PATH_RAW_MASK)
 
+
+     aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array)
+     niftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
+     niftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
 # ################################
 # #||                          #||
 # #||         Trainer          #||
