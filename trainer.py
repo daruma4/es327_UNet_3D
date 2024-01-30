@@ -60,21 +60,24 @@ class UNetTrainer:
 
         return conv
 
-    def create_unet_model(self, NUM_CLASSES=1, dropout_rate=0.0, batch_norm=False):
+    def create_unet_model(self, NUM_CLASSES=1, dropout_rate=0.0, batch_norm=False, filter_num=32, filter_size=3, up_sample_size=2):
         """Creates an instance of keras.models.Model class that follows the UNet architecture
 
         Args:
             NUM_CLASSES (int, optional): Defines how many different classes (items) to segment. Defaults to 1.
             dropout_rate (float, optional): _description_. Defaults to 0.0.
             batch_norm (bool, optional): _description_. Defaults to False.
+            filter_num (int, optional): _description_. Defaults to 32.
+            filter_size (int, optional): _description_. Defaults to 3.
+            up_sample_size (int, optional): _description_. Defaults to 2.
 
         Returns:
-            keras.models.Model
+            _type_: _description_
         """
         # Network Structure
-        FILTER_NUM = 32 # number of filters for the first layer
-        FILTER_SIZE = 3 # size of the convolutional filter
-        UP_SAMP_SIZE = 2 # size of upsampling filters
+        FILTER_NUM = filter_num # number of filters for the first layer
+        FILTER_SIZE = filter_size # size of the convolutional filter
+        UP_SAMP_SIZE = up_sample_size # size of upsampling filters
         
         inputs = layers.Input((self.img_width, self.img_height, self.img_channels))
 
@@ -165,20 +168,20 @@ class UNetTrainer:
         return K.mean(K.equal(y_true, K.round(y_pred)))
     
 
-    #Implement args - remove hardcoding
-    def reduce_lr(self):
-        return tf.keras.callbacks.ReduceLROnPlateau(
-                monitor='val_loss',  # Metric to monitor
-                factor=0.1,  # Factor by which the learning rate will be reduced
-                patience=3,  # Number of epochs with no improvement after which learning rate will be reduced
-                verbose=1)  # Print a message when learning rate is reduced
+    # #Implement args - remove hardcoding
+    # def reduce_lr(self):
+    #     return tf.keras.callbacks.ReduceLROnPlateau(
+    #             monitor='val_loss',  # Metric to monitor
+    #             factor=0.1,  # Factor by which the learning rate will be reduced
+    #             patience=3,  # Number of epochs with no improvement after which learning rate will be reduced
+    #             verbose=1)  # Print a message when learning rate is reduced
     
-    def early_stopper(self):
-        return tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+    # def early_stopper(self):
+    #     return tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)
     
-    def checkpoint(self):
-        return tf.keras.callbacks.ModelCheckpoint(
-                filepath='best_unet2D.h5',
-                monitor='val_loss',
-                save_best_only=True,
-                verbose=1)
+    # def checkpoint(self):
+    #     return tf.keras.callbacks.ModelCheckpoint(
+    #             filepath='best_unet2D.h5',
+    #             monitor='val_loss',
+    #             save_best_only=True,
+    #             verbose=1)

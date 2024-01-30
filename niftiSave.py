@@ -9,11 +9,11 @@ import cv2
 import os
 
 class NiftiSave:
-    def __init__(self, path_to_save_raw, path_to_save_mask, nifti_storage_path, metaJSONpath):
-        self.path_to_save_raw = path_to_save_raw
-        self.path_to_save_mask = path_to_save_mask
-        self.nifti_storage_path = nifti_storage_path
-        self.metadata_path = metaJSONpath
+    def __init__(self, path_save_image, path_save_mask, path_nifti, path_nifti_meta):
+        self.path_save_image = path_save_image
+        self.path_save_mask = path_save_mask
+        self.path_nifti = path_nifti
+        self.path_nifti_meta = path_nifti_meta
 
     def crop_center(self, img, cropx, cropy):
         """Centre crops image
@@ -60,7 +60,7 @@ class NiftiSave:
         return returnList
 
     @staticmethod
-    def save_images(save_path, save_prefix, img_iterable):
+    def save_images(save_path, save_prefix, img_iterable, mask_bool):
         """Saves images to save_path with save_prefix
 
         Args:
@@ -70,9 +70,8 @@ class NiftiSave:
         """
         for idx, img in enumerate(img_iterable):
             save_file_path = os.path.join(save_path, f"{save_prefix}_{idx}.png")
-            img = cv2.convertScaleAbs(img, alpha=(255.0))
-            # if mask_bool is True:
-            #     img = cv2.convertScaleAbs(img, alpha=(255.0)) # correct range of image for saving mask
+            if mask_bool is True:
+                img = cv2.convertScaleAbs(img, alpha=(255.0)) # correct range of image for saving mask
             cv2.imwrite(save_file_path, img)
 
     def range_crop(self, ranges, img_iterable):
