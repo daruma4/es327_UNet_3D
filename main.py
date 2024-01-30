@@ -11,7 +11,7 @@ import numpy as np
 import niftiSave
 import trainer
 import predictor
-import augmentator
+import augment
 
 #Current working directory of the project
 ROOT_DIR = os.path.abspath("")
@@ -22,25 +22,23 @@ DEFAULT_LOGS_DIR = os.path.join(ASSETS_DIR, "trained_models")
 # Path to images etc. for model
 DATASET_DIR = os.path.join(ASSETS_DIR, "model_data")
 
+PATH_RAW_IMAGE = os.path.join(DATASET_DIR, "raw\\image")
+PATH_RAW_MASK = os.path.join(DATASET_DIR, "raw\\mask")
+PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented\\image")
+PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented\\mask")
+PATH_NIFTI = os.path.join(DATASET_DIR, "nifti")
+PATH_NIFTI_META = os.path.join(PATH_NIFTI, "meta.json")
 ################################
 #||                          #||
 #||       Nifti to PNG       #||
 #||                          #||
 ################################
 def main_nifti():
-     PATH_RAW_IMAGE = os.path.join(DATASET_DIR, "raw\\image")
-     PATH_RAW_MASK = os.path.join(DATASET_DIR, "raw\\mask")
-     PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented\\image")
-     PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented\\mask")
-     PATH_NIFTI = os.path.join(DATASET_DIR, "nifti")
-     PATH_NIFTI_META = os.path.join(PATH_NIFTI, "meta.json")
-
      #Load Nifti metadata and create niftisaver instance
      try:
           metadata = json.load(open(PATH_NIFTI_META))
      except FileNotFoundError:
           print(f"[ERROR] Metadata file not found at {PATH_NIFTI_META}")
-     niftisaver = niftiSave.NiftiSave(path_save_image=PATH_RAW_IMAGE, path_save_mask=PATH_RAW_MASK, path_nifti=PATH_NIFTI, path_nifti_meta=PATH_NIFTI_META)
      nifti_folder_list = [os.path.join(PATH_NIFTI, each) for each in os.listdir(PATH_NIFTI) if each.endswith(".nii")]
 
      #Open each Nifti and save images + masks
@@ -49,30 +47,33 @@ def main_nifti():
           nifti_file_name = os.path.basename(nifti_path)
 
           raw_data = nib_nifti.get_fdata()[:,:,:,0,1] # all images
-          data_iterable = niftisaver.image_array_to_iterable(raw_data) # make data iterable
+          data_iterable = niftiSave.image_array_to_iterable(raw_data) # make data iterable
           cut_ranges = metadata[nifti_file_name]["ranges"]
-          data_iterable_ranged = niftisaver.range_crop(cut_ranges, data_iterable) # cuts to only range specified
-          data_iterable_cropped = niftisaver.crop_images_iterable(data_iterable_ranged) # crop images
+          data_iterable_ranged = niftiSave.range_crop(cut_ranges, data_iterable) # cuts to only range specified
+          data_iterable_cropped = niftiSave.crop_images_iterable(data_iterable_ranged) # crop images
 
           mask_bool = metadata[nifti_file_name]["mask_bool"]
-          save_path = niftisaver.path_save_image
+          save_path = PATH_RAW_IMAGE
           if mask_bool is True:
-               save_path = niftisaver.path_save_mask
+               save_path = PATH_RAW_MASK
 
           
-          niftisaver.save_images(save_path, metadata[nifti_file_name]["save_prefix"], data_iterable_cropped, mask_bool=mask_bool)
+          niftiSave.save_images(save_path, metadata[nifti_file_name]["save_prefix"], data_iterable_cropped, mask_bool=mask_bool)
 
-# ################################
-# #||                          #||
-# #||        Augmentor         #||
-# #||                          #||
-# ################################
-# image_array=trainer.UNetTrainer.folder_to_array(PATH_TO_SAVE_RAW, 256, 256)
-# mask_array=trainer.UNetTrainer.folder_to_array(PATH_TO_SAVE_MASK, 256, 256)
+main_nifti()
+################################
+#||                          #||
+#||        Augmentor         #||
+#||                          #||
+################################
+def main_augmentation():
+     image_array=niftiSave.NiftiSave.load_images(PATH_RAW_IMAGE, 256, 256)
+     mask_array=niftiSave.load_images(PATH_RAW_MASK, 256, 256)
 
-# aug_raw, aug_mask = augmentator.do_albumentations(img_list=image_array, mask_list=mask_array)
-# niftiSave.NiftiSave.save_images(save_path=PATH_TO_SAVE_AUG_RAW, save_prefix="r", img_iterable=aug_raw)
-# niftiSave.NiftiSave.save_images(save_path=PATH_TO_SAVE_AUG_MASK, save_prefix="m", img_iterable=aug_mask)
+     aug_raw, aug_mask = augment.do_albumentations(img_list=image_array, mask_list=mask_array)
+     niftiSave.NiftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
+     niftiSave.NiftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
+
 # ################################
 # #||                          #||
 # #||         Trainer          #||

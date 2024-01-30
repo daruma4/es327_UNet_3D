@@ -14,26 +14,6 @@ class UNetTrainer:
         self.img_channels = img_channels
         self.epochs = epochs
 
-    @staticmethod
-    def folder_to_array(folder, img_width, img_height):
-        """Returns images in a folder as a Numpy array
-
-        Args:
-            folder (string): folder path that contains images
-
-        Returns:
-            image_list (np.ndarray): array of images
-        """
-        image_list = []
-        for img_path in sorted(glob.glob(f"{folder}/*.png")):
-                img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-                img = img / 255.0
-                image_list.append(img)
-        image_list = np.array(image_list)
-        image_list = np.reshape(image_list, (-1, img_width, img_height, 1)).astype(np.float32)
-
-        return image_list
-
     def conv_block(self, x, filter_size, size, dropout, batch_norm=False):
         """_summary_
 
