@@ -98,7 +98,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.j_dice_coef_loss
+     loss = unetObj.j_iou_loss
      ## Investigation needed - why does it train on J_dice_coef_loss and not g...
      metrics = [unetObj.g_dice_coef_loss, unetObj.j_dice_coef_loss, unetObj.g_iou, unetObj.j_iou, unetObj.g_iou_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
@@ -108,6 +108,10 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
      myModel.save(myModelSavePath)
 
+def training_routine():
+     filter_nums = [16, 32, 64]
+     batch_sizes = [16, 32, 64]
+     learing_rates = [0.001, 0.0001, 0.00001]
 # ################################
 # #||                          #||
 # #||        Predictor         #||
