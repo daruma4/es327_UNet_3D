@@ -103,11 +103,18 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      metrics = [unetObj.g_dice_coef_loss, unetObj.j_dice_coef_loss, unetObj.g_iou, unetObj.j_iou, unetObj.g_iou_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
-     #Do fit
-     myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True)
-     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
-     myModel.save(myModelSavePath)
+     #Prepare callbacks
+     earlystopper = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)
+     reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss',factor=0.1,patience=3,verbose=1)
 
+     #Do fit
+     myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, callbacks=[earlystopper, reduce_lr])
+     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
+     myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
+     myModel.save(myModelSavePath)
+     np.save(myModelHistorySavePath, myModel_trained.history)
+
+main_trainer(epochs=5)
 # ################################
 # #||                          #||
 # #||        Predictor         #||
