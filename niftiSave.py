@@ -8,87 +8,102 @@ import numpy as np
 import cv2
 import os
 
-class NiftiSave:
-    def __init__(self, path_to_save_raw, path_to_save_mask, nifti_storage_path, metaJSONpath):
-        self.path_to_save_raw = path_to_save_raw
-        self.path_to_save_mask = path_to_save_mask
-        self.nifti_storage_path = nifti_storage_path
-        self.metadata_path = metaJSONpath
+def crop_center(img, cropx, cropy):
+    """Centre crops image
 
-    def crop_center(self, img, cropx, cropy):
-        """Centre crops image
+    Args:
+        img (numpy.ndarray): Image 2D array
+        cropx (int): Max width x
+        cropy (int): Max height x
 
-        Args:
-            img (numpy.ndarray): Image 2D array
-            cropx (int): Max width x
-            cropy (int): Max height x
+    Returns:
+        numpy.ndarray: Cropped image 2D array
+    """
+    y,x = img.shape
+    startx = x//2-(cropx//2)
+    starty = y//2-(cropy//2)    
+    return img[starty:starty+cropy,startx:startx+cropx]
 
-        Returns:
-            numpy.ndarray: Cropped image 2D array
-        """
-        y,x = img.shape
-        startx = x//2-(cropx//2)
-        starty = y//2-(cropy//2)    
-        return img[starty:starty+cropy,startx:startx+cropx]
+def image_array_to_iterable(img_array):
+    """Converts an array containing many 2D image data into an iterable version i.e. a list [n,1] containg each image [img_height, img_width]
 
-    def image_array_to_iterable(self, img_array):
-        """Converts an array containing many 2D image data into an iterable version i.e. a list [n,1] containg each image [img_height, img_width]
+    Args:
+        img_array (numpy.ndarray): 2D image array
+    """
+    returnList = []
+    num = img_array.shape[2]
+    for idx in range(num):
+        returnList.append(img_array[:, :, idx])
 
-        Args:
-            img_array (numpy.ndarray): 2D image array
-        """
-        returnList = []
-        num = img_array.shape[2]
-        for idx in range(num):
-            returnList.append(img_array[:, :, idx])
+    return returnList
 
-        return returnList
+def crop_images_iterable(img_iterable):
+    """Center crops all images in iterable
 
-    def crop_images_iterable(self, img_iterable):
-        """Center crops all images in iterable
+    Args:
+        img_iterable (list): List containing 2D images
 
-        Args:
-            img_iterable (list): List containing 2D images
+    Returns:
+        list: cropped image iterable
+    """
+    returnList = []
+    for image in img_iterable:
+        returnList.append(crop_center(np.fliplr(np.rot90(image)), 256, 256)) # for raw
 
-        Returns:
-            list: cropped image iterable
-        """
-        returnList = []
-        for image in img_iterable:
-            returnList.append(self.crop_center(np.fliplr(np.rot90(image)), 256, 256)) # for raw
+    return returnList
 
-        return returnList
+def range_crop(ranges, img_iterable):
+    """Returns the img_iterable only in the ranges specified
 
-    @staticmethod
-    def save_images(save_path, save_prefix, img_iterable):
-        """Saves images to save_path with save_prefix
+    Args:
+        ranges (List[int]): List of ranges in form [start, end]
+        img_iterable (_type_): _description_
 
-        Args:
-            save_path (_type_): _description_
-            save_prefix (_type_): _description_
-            img_iterable (_type_): _description_
-        """
-        for idx, img in enumerate(img_iterable):
-            save_file_path = os.path.join(save_path, f"{save_prefix}_{idx}.png")
-            img = cv2.convertScaleAbs(img, alpha=(255.0))
-            # if mask_bool is True:
-            #     img = cv2.convertScaleAbs(img, alpha=(255.0)) # correct range of image for saving mask
-            cv2.imwrite(save_file_path, img)
+    Returns:
+        _type_: _description_
+    """
+    workingList = []
+    for range in ranges:
+        minR = range[0]
+        maxR = range[1]
+        for img in img_iterable[minR:maxR]:
+            workingList.append(img)
+    return workingList
+    
+    
+def save_images(save_path, save_prefix, img_iterable, mask_bool):
+    """Saves each element of img_iterable to save_path location with the prefix save_prefix
 
-    def range_crop(self, ranges, img_iterable):
-        """Returns the img_iterable only in the ranges specified
+    Args:
+        save_path (str): _description_
+        save_prefix (str): _description_
+        img_iterable (np.ndarray): _description_
+        mask_bool (bool): _description_
+    """
+    for idx, img in enumerate(img_iterable):
+        save_file_path = os.path.join(save_path, f"{save_prefix}_{idx}.png")
+        if mask_bool is True:
+            img = cv2.convertScaleAbs(img, alpha=(255.0)) # correct range of image for saving mask
+        cv2.imwrite(save_file_path, img)
 
-        Args:
-            ranges (List[int]): List of ranges in form [start, end]
-            img_iterable (_type_): _description_
 
-        Returns:
-            _type_: _description_
-        """
-        workingList = []
-        for range in ranges:
-            minR = range[0]
-            maxR = range[1]
-            for img in img_iterable[minR:maxR]:
-                workingList.append(img)
-        return workingList
+def load_images(folder, img_width=256, img_height=256, normalize=False):
+    """Returns images in a folder as a Numpy array
+
+    Args:
+        folder (string): folder path that contains images
+
+    Returns:
+        image_list (np.ndarray): array of images
+    """
+    image_list = []
+    image_folder_list = [os.path.join(folder, each) for each in os.listdir(folder)]
+    for img_path in image_folder_list:
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            if normalize is True:
+                img = img / 255 # Normalise images for training model
+            image_list.append(img)
+    image_list = np.array(image_list)
+    image_list = np.reshape(image_list, (-1, img_width, img_height, 1)).astype(np.float32)
+
+    return image_list
