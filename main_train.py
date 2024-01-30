@@ -117,13 +117,6 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      myModel.save(myModelSavePath)
      np.save(myModelHistorySavePath, myModel_trained.history)
 
-def training_routine():
-     filter_nums = [16, 32, 64]
-     batch_sizes = [8, 16, 32]
-     learing_rates = [0.001, 0.0001, 0.00001]
-     main_trainer(learning_rate=0.00001)
-
-training_routine()
 
 # ################################
 # #||                          #||
