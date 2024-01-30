@@ -90,16 +90,16 @@ def main_augmentation():
 #||                          #||
 ################################
 def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=16, learning_rate=0.0001):
-     #Should setup to change filter_num, batch_size and 
+     #Should setup to change filter_num, batch_size and learning_rate
      unetObj = unet.unet_model(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
-     aug_images = niftiSave.load_images(PATH_AUG_IMAGE)
-     aug_masks = niftiSave.load_images(PATH_AUG_MASK)
+     aug_images = niftiSave.load_images(PATH_AUG_IMAGE, normalize=True)
+     aug_masks = niftiSave.load_images(PATH_AUG_MASK, normalize=True)
 
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.dice_coef_loss
-     metrics = [unetObj.iou, unetObj.dice_coef, unetObj.precision, unetObj.recall, unetObj.accuracy]
+     loss = unetObj.iou_loss
+     metrics = [unetObj.dice_coef_loss, unetObj.iou]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
      #Do fit
