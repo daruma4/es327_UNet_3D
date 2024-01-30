@@ -100,6 +100,8 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
      loss = unetObj.j_iou_loss
      ## Investigation needed - why does it train on J_dice_coef_loss and not g...
+
+     ## SHOULD EXPERIMENT WITH SMOOTHING VALUE IN J_IOU_LOSS 
      metrics = [unetObj.g_dice_coef_loss, unetObj.j_dice_coef_loss, unetObj.g_iou, unetObj.j_iou, unetObj.g_iou_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
@@ -117,14 +119,11 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
 def training_routine():
      filter_nums = [16, 32, 64]
-     batch_sizes = [16, 32, 64]
+     batch_sizes = [8, 16, 32]
      learing_rates = [0.001, 0.0001, 0.00001]
-     for filter_num in filter_nums:
-          main_trainer(filter_num=filter_num)
-     for batch_size in batch_sizes:
-          main_trainer(batch_size=batch_size)
-     for lr in learing_rates:
-          main_trainer(learning_rate=lr)
+     main_trainer(learning_rate=0.00001)
+
+training_routine()
 
 # ################################
 # #||                          #||
