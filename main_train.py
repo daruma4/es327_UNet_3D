@@ -98,7 +98,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.j_dice_coef_loss
+     loss = unetObj.j_iou_loss
      ## Investigation needed - why does it train on J_dice_coef_loss and not g...
      metrics = [unetObj.g_dice_coef_loss, unetObj.j_dice_coef_loss, unetObj.g_iou, unetObj.j_iou, unetObj.g_iou_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
@@ -107,6 +107,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      earlystopper = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)
      reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss',factor=0.1,patience=3,verbose=1)
 
+
      #Do fit
      myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, callbacks=[earlystopper, reduce_lr])
      myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
@@ -114,7 +115,17 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      myModel.save(myModelSavePath)
      np.save(myModelHistorySavePath, myModel_trained.history)
 
-main_trainer(epochs=5)
+def training_routine():
+     filter_nums = [16, 32, 64]
+     batch_sizes = [16, 32, 64]
+     learing_rates = [0.001, 0.0001, 0.00001]
+     for filter_num in filter_nums:
+          main_trainer(filter_num=filter_num)
+     for batch_size in batch_sizes:
+          main_trainer(batch_size=batch_size)
+     for lr in learing_rates:
+          main_trainer(learning_rate=lr)
+
 # ################################
 # #||                          #||
 # #||        Predictor         #||
@@ -138,4 +149,4 @@ def predict(model_path: str):
           subplot.set_yticks([])
      plt.show()
 
-predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
+# predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
