@@ -112,6 +112,14 @@ def training_routine():
      filter_nums = [16, 32, 64]
      batch_sizes = [16, 32, 64]
      learing_rates = [0.001, 0.0001, 0.00001]
+     for filter_num in filter_nums:
+          main_trainer(filter_num=filter_num)
+     for batch_size in batch_sizes:
+          main_trainer(batch_size=batch_size)
+     for lr in learing_rates:
+          main_trainer(learning_rate=lr)
+
+training_routine()
 # ################################
 # #||                          #||
 # #||        Predictor         #||
@@ -135,4 +143,4 @@ def predict(model_path: str):
           subplot.set_yticks([])
      plt.show()
 
-predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
+# predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
