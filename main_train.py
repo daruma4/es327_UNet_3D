@@ -127,7 +127,6 @@ def main_augmentation(slice_count=16):
      niftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
      niftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
 
-main_augmentation()
 ################################
 #||                          #||
 #||         Trainer          #||
