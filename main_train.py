@@ -23,8 +23,10 @@ DEFAULT_LOGS_DIR = os.path.join(ASSETS_DIR, "trained_models")
 # Path to images etc. for model
 DATASET_DIR = os.path.join(ASSETS_DIR, "model_data")
 
-PATH_RAW_IMAGE = os.path.join(DATASET_DIR, "raw\\image")
-PATH_RAW_MASK = os.path.join(DATASET_DIR, "raw\\mask")
+PATH_RAW_IMAGE_2D = os.path.join(DATASET_DIR, "raw_2d\\image")
+PATH_RAW_MASK_2D = os.path.join(DATASET_DIR, "raw_2d\\mask")
+PATH_RAW_IMAGE_3D = os.path.join(DATASET_DIR, "raw_3d\\image")
+PATH_RAW_MASK_3D = os.path.join(DATASET_DIR, "raw_3d\\mask")
 PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented\\image")
 PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented\\mask")
 PATH_NIFTI = os.path.join(DATASET_DIR, "nifti")
@@ -54,12 +56,47 @@ def main_nifti():
           data_iterable_cropped = niftiSave.crop_images_iterable(data_iterable_ranged) # crop images
 
           mask_bool = metadata[nifti_file_name]["mask_bool"]
-          save_path = PATH_RAW_IMAGE
+          save_path = PATH_RAW_IMAGE_2D
           if mask_bool is True:
-               save_path = PATH_RAW_MASK
+               save_path = PATH_RAW_MASK_2D
 
           
           niftiSave.save_images(save_path, metadata[nifti_file_name]["save_prefix"], data_iterable_cropped, mask_bool=mask_bool)
+
+################################
+#||                          #||
+#||        3D Parser         #||
+#||                          #||
+################################
+def main_3dparser(slice_count=16):
+     raw2d_dict = {}
+     raw2d_folder_list = [os.path.join(PATH_RAW_IMAGE_2D, each) for each in sorted(os.listdir(PATH_RAW_IMAGE_2D))]
+     for path in raw2d_folder_list:
+          prefix = os.path.basename(path).split("_")[0]
+          if prefix not in raw2d_dict:
+               raw2d_dict[prefix] = {}
+               raw2d_dict[prefix]["files"] = []
+          raw2d_dict[prefix]["files"].append(path)
+     for prefix in raw2d_dict:
+          raw2d_dict[prefix]["files"] = sorted(
+                                                  raw2d_dict[prefix]["files"], 
+                                                  key = lambda i: int(os.path.basename(i).split("_")[1].split(".")[0])
+                                               ) # Natural Sort the files
+          raw2d_dict[prefix]["file_count"] = len(raw2d_dict[prefix]["files"])
+          raw2d_dict[prefix]["file_idx_floor"] = (raw2d_dict[prefix]["file_count"] // slice_count) * slice_count
+          raw2d_dict[prefix]["files"] = raw2d_dict[prefix]["files"][:raw2d_dict[prefix]["file_idx_floor"]] # Only keep paths that allow for exact slice_count slices of a scan
+
+          #Open all files from list
+          for image_path in raw2d_dict[prefix]["files"]:
+               img = niftiSave.load_path_as_img(image_path)
+               niftiSave.save_img_to_path(img=img, path=os.path.join(PATH_RAW_IMAGE_3D, os.path.basename(image_path)), mask_bool=False)
+               #Save to 3D image dir
+               #Open all masks
+               mask_file_name = f"m{os.path.basename(image_path)[1:]}"
+               mask_2d_path = os.path.join(PATH_RAW_MASK_2D, mask_file_name)
+               mask = niftiSave.load_path_as_img(mask_2d_path)
+               #Save to 3D mask dir
+               niftiSave.save_img_to_path(img=mask, path=os.path.join(PATH_RAW_MASK_3D, mask_file_name), mask_bool=True)
 
 ################################
 #||                          #||
@@ -76,8 +113,8 @@ def main_augmentation():
           ]
      )
 
-     image_array=niftiSave.load_images(PATH_RAW_IMAGE)
-     mask_array=niftiSave.load_images(PATH_RAW_MASK)
+     image_array=niftiSave.load_images(PATH_RAW_IMAGE_3D)
+     mask_array=niftiSave.load_images(PATH_RAW_MASK_3D)
 
 
      aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array)
@@ -92,8 +129,8 @@ def main_augmentation():
 def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=16, learning_rate=0.0001):
      #Should setup to change filter_num, batch_size and learning_rate
      unetObj = unet.unet_model(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
-     aug_images = niftiSave.load_images(PATH_AUG_IMAGE, normalize=True)
-     aug_masks = niftiSave.load_images(PATH_AUG_MASK, normalize=True)
+     raw_images = niftiSave.load_folder_3d(PATH_RAW_IMAGE_3D, normalize=True)
+     raw_masks = niftiSave.load_folder_3d(PATH_RAW_MASK_3D, normalize=True)
 
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
@@ -111,12 +148,11 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
 
      #Do fit
-     myModel_trained = myModel.fit(x=aug_images, y=aug_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, callbacks=[earlystopper, reduce_lr])
-     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
-     myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
+     myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, callbacks=[earlystopper, reduce_lr])
+     myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
+     myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
      myModel.save(myModelSavePath)
      np.save(myModelHistorySavePath, myModel_trained.history)
-
 
 # ################################
 # #||                          #||

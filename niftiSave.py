@@ -87,7 +87,7 @@ def save_images(save_path, save_prefix, img_iterable, mask_bool):
         cv2.imwrite(save_file_path, img)
 
 
-def load_images(folder, img_width=256, img_height=256, normalize=False):
+def load_folder_3d(folder, img_width=256, img_height=256, normalize=False):
     """Returns images in a folder as a Numpy array
 
     Args:
@@ -104,6 +104,16 @@ def load_images(folder, img_width=256, img_height=256, normalize=False):
                 img = img / 255 # Normalise images for training model
             image_list.append(img)
     image_list = np.array(image_list)
-    image_list = np.reshape(image_list, (-1, img_width, img_height, 1)).astype(np.float32)
+    image_list = np.reshape(image_list, (-1, 16, img_width, img_height, 1)).astype(np.float32)
 
     return image_list
+
+def load_path_as_img(path):
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    return img
+
+def save_img_to_path(img, path, mask_bool):
+    if mask_bool is True:
+        img = cv2.convertScaleAbs(img, alpha=(255.0))
+    cv2.imwrite(path, img)
+    return
