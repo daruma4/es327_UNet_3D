@@ -27,8 +27,8 @@ PATH_RAW_IMAGE_2D = os.path.join(DATASET_DIR, "raw_2d\\image")
 PATH_RAW_MASK_2D = os.path.join(DATASET_DIR, "raw_2d\\mask")
 PATH_RAW_IMAGE_3D = os.path.join(DATASET_DIR, "raw_3d\\image")
 PATH_RAW_MASK_3D = os.path.join(DATASET_DIR, "raw_3d\\mask")
-PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented\\image")
-PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented\\mask")
+PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented_3d\\image")
+PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented_3d\\mask")
 PATH_NIFTI = os.path.join(DATASET_DIR, "nifti")
 PATH_NIFTI_META = os.path.join(PATH_NIFTI, "meta.json")
 ################################
@@ -103,24 +103,31 @@ def main_3dparser(slice_count=16):
 #||        Augmentor         #||
 #||                          #||
 ################################
-def main_augmentation():
+def main_augmentation(slice_count=16):
+     # edit so augments slice_count at a time (e.g. 16 images augmented the same)
+     additional_targets = {}
+     for i in range(1, slice_count):
+          additional_targets[f"image{i}"] = "image"
+          additional_targets[f"mask{i}"] = "mask"
      AUGMENTATIONS_LIST = albumentations.Compose(
           [
                albumentations.Blur(blur_limit=15, p=0.5),
                albumentations.HorizontalFlip(p=0.5),
                albumentations.VerticalFlip(p=0.5),
-               albumentations.RandomRotate90(p=0.5)
-          ]
+               albumentations.RandomRotate90(p=0.5),
+          ],
+          additional_targets=additional_targets
      )
 
-     image_array=niftiSave.load_images(PATH_RAW_IMAGE_3D)
-     mask_array=niftiSave.load_images(PATH_RAW_MASK_3D)
+     image_array=niftiSave.load_folder_3d(PATH_RAW_IMAGE_3D)
+     mask_array=niftiSave.load_folder_3d(PATH_RAW_MASK_3D)
 
 
-     aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array)
+     aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array, slice_count=slice_count)
      niftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
      niftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
 
+main_augmentation()
 ################################
 #||                          #||
 #||         Trainer          #||
