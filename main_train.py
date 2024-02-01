@@ -27,8 +27,8 @@ PATH_RAW_IMAGE_2D = os.path.join(DATASET_DIR, "raw_2d\\image")
 PATH_RAW_MASK_2D = os.path.join(DATASET_DIR, "raw_2d\\mask")
 PATH_RAW_IMAGE_3D = os.path.join(DATASET_DIR, "raw_3d\\image")
 PATH_RAW_MASK_3D = os.path.join(DATASET_DIR, "raw_3d\\mask")
-PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented\\image")
-PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented\\mask")
+PATH_AUG_IMAGE = os.path.join(DATASET_DIR, "augmented_3d\\image")
+PATH_AUG_MASK = os.path.join(DATASET_DIR, "augmented_3d\\mask")
 PATH_NIFTI = os.path.join(DATASET_DIR, "nifti")
 PATH_NIFTI_META = os.path.join(PATH_NIFTI, "meta.json")
 ################################
@@ -103,21 +103,27 @@ def main_3dparser(slice_count=16):
 #||        Augmentor         #||
 #||                          #||
 ################################
-def main_augmentation():
+def main_augmentation(slice_count=16):
+     # edit so augments slice_count at a time (e.g. 16 images augmented the same)
+     additional_targets = {}
+     for i in range(1, slice_count):
+          additional_targets[f"image{i}"] = "image"
+          additional_targets[f"mask{i}"] = "mask"
      AUGMENTATIONS_LIST = albumentations.Compose(
           [
                albumentations.Blur(blur_limit=15, p=0.5),
                albumentations.HorizontalFlip(p=0.5),
                albumentations.VerticalFlip(p=0.5),
-               albumentations.RandomRotate90(p=0.5)
-          ]
+               albumentations.RandomRotate90(p=0.5),
+          ],
+          additional_targets=additional_targets
      )
 
-     image_array=niftiSave.load_images(PATH_RAW_IMAGE_3D)
-     mask_array=niftiSave.load_images(PATH_RAW_MASK_3D)
+     image_array=niftiSave.load_folder_3d(PATH_RAW_IMAGE_3D)
+     mask_array=niftiSave.load_folder_3d(PATH_RAW_MASK_3D)
 
 
-     aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array)
+     aug_raw, aug_mask = augment.do_albumentations(transform=AUGMENTATIONS_LIST, img_list=image_array, mask_list=mask_array, slice_count=slice_count)
      niftiSave.save_images(save_path=PATH_AUG_IMAGE, save_prefix="r", img_iterable=aug_raw, mask_bool=False)
      niftiSave.save_images(save_path=PATH_AUG_MASK, save_prefix="m", img_iterable=aug_mask, mask_bool=True)
 
@@ -126,16 +132,16 @@ def main_augmentation():
 #||         Trainer          #||
 #||                          #||
 ################################
-def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=16, learning_rate=0.0001):
+def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=1, learning_rate=0.0001):
      #Should setup to change filter_num, batch_size and learning_rate
      unetObj = unet.unet_model(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
-     raw_images = niftiSave.load_folder_3d(PATH_RAW_IMAGE_3D, normalize=True)
-     raw_masks = niftiSave.load_folder_3d(PATH_RAW_MASK_3D, normalize=True)
+     raw_images = niftiSave.load_folder_3d(PATH_AUG_IMAGE, normalize=True)
+     raw_masks = niftiSave.load_folder_3d(PATH_AUG_MASK, normalize=True)
 
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.j_iou_loss
+     loss = unetObj.j_dice_coef_loss
      ## Investigation needed - why does it train on J_dice_coef_loss and not g...
 
      ## SHOULD EXPERIMENT WITH SMOOTHING VALUE IN J_IOU_LOSS 
@@ -148,7 +154,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
 
      #Do fit
-     myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, callbacks=[earlystopper, reduce_lr])
+     myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=False, validation_batch_size=1, callbacks=[earlystopper, reduce_lr])
      myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
      myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
      myModel.save(myModelSavePath)
