@@ -132,16 +132,16 @@ def main_augmentation(slice_count=16):
 #||         Trainer          #||
 #||                          #||
 ################################
-def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=16, learning_rate=0.0001):
+def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=1, learning_rate=0.0001):
      #Should setup to change filter_num, batch_size and learning_rate
      unetObj = unet.unet_model(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
-     raw_images = niftiSave.load_folder_3d(PATH_RAW_IMAGE_3D, normalize=True)
-     raw_masks = niftiSave.load_folder_3d(PATH_RAW_MASK_3D, normalize=True)
+     raw_images = niftiSave.load_folder_3d(PATH_AUG_IMAGE, normalize=True)
+     raw_masks = niftiSave.load_folder_3d(PATH_AUG_MASK, normalize=True)
 
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.j_iou_loss
+     loss = unetObj.j_dice_coef_loss
      ## Investigation needed - why does it train on J_dice_coef_loss and not g...
 
      ## SHOULD EXPERIMENT WITH SMOOTHING VALUE IN J_IOU_LOSS 
@@ -154,7 +154,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
 
      #Do fit
-     myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, callbacks=[earlystopper, reduce_lr])
+     myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=False, validation_batch_size=1, callbacks=[earlystopper, reduce_lr])
      myModelSavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.h5")
      myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
      myModel.save(myModelSavePath)
