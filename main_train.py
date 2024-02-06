@@ -98,6 +98,11 @@ def main_3dparser(slice_count=16):
                #Save to 3D mask dir
                niftiSave.save_img_to_path(img=mask, path=os.path.join(PATH_RAW_MASK_3D, mask_file_name), mask_bool=True)
 
+def visualise(image_3d):
+     fig, subplots = plt.subplots(4, 4)
+     for idx, ax in enumerate(subplots.flatten()):
+          ax.imshow(image_3d[idx,:,:,:], cmap="gray")
+     plt.show()
 ################################
 #||                          #||
 #||        Augmentor         #||

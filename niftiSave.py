@@ -97,8 +97,20 @@ def load_folder_3d(folder, img_width=256, img_height=256, normalize=False):
         image_list (np.ndarray): array of images
     """
     image_list = []
+    local_dict = {}
     image_folder_list = [os.path.join(folder, each) for each in os.listdir(folder)]
-    for img_path in image_folder_list:
+    for path in image_folder_list:
+        prefix = os.path.basename(path).split("_")[0]
+        if prefix not in local_dict:
+            local_dict[prefix] = {}
+            local_dict[prefix]["files"] = []
+        local_dict[prefix]["files"].append(path)
+    for prefix in local_dict:
+        local_dict[prefix]["files"] = sorted(
+                                                local_dict[prefix]["files"], 
+                                                key = lambda i: int(os.path.basename(i).split("_")[1].split(".")[0])
+                                            ) # Natural Sort the files
+        for img_path in local_dict[prefix]["files"]:
             img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
             if normalize is True:
                 img = img / 255 # Normalise images for training model
