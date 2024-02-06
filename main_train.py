@@ -14,6 +14,8 @@ import unet
 import predictor
 import augment
 
+import losses
+
 #Current working directory of the project
 ROOT_DIR = os.path.abspath("")
 # Path to assets
@@ -146,11 +148,9 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.j_dice_coef_loss
-     ## Investigation needed - why does it train on J_dice_coef_loss and not g...
-
+     loss = losses.dice_loss
      ## SHOULD EXPERIMENT WITH SMOOTHING VALUE IN J_IOU_LOSS 
-     metrics = [unetObj.g_dice_coef_loss, unetObj.j_dice_coef_loss, unetObj.g_iou, unetObj.j_iou, unetObj.g_iou_loss]
+     metrics = [unetObj.j_dice_coef, unetObj.j_iou]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
      #Prepare callbacks
@@ -165,6 +165,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      myModel.save(myModelSavePath)
      np.save(myModelHistorySavePath, myModel_trained.history)
 
+# main_trainer(epochs=10, filter_num=32, batch_size=1, learning_rate=0.0001)
 # ################################
 # #||                          #||
 # #||        Predictor         #||
