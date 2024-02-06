@@ -109,6 +109,12 @@ class unet_model:
 
         return model
     
+    ################################
+    #||                          #||
+    #||      Loss Functions      #||
+    #||                          #||
+    ################################
+
     def g_dice_coef_loss(self, y_true, y_pred, smooth=1):
         """
         Dice = (2*|X & Y|)/ (|X|+ |Y|)
@@ -120,9 +126,6 @@ class unet_model:
         intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
         dice = (2. * intersection + smooth) / (K.sum(K.square(y_true),-1) + K.sum(K.square(y_pred),-1) + smooth)
         return 1 - dice
-    
-    def g_iou_loss(self, y_true, y_pred):
-        return (1 - (self.g_iou(y_true, y_pred)/100))
 
     def g_iou(self, y_true, y_pred, smooth=100):
         """
@@ -139,62 +142,23 @@ class unet_model:
         jac = (intersection + smooth) / (sum_ - intersection + smooth)
         return jac * smooth
     
+    def g_iou_loss(self, y_true, y_pred):
+        return (1 - (self.g_iou(y_true, y_pred)/100))
+    
     def j_dice_coef(self, y_true, y_pred):
         y_true_f = K.flatten(y_true)
         y_pred_f = K.flatten(y_pred)
         intersection = K.sum(y_true_f * y_pred_f)
         return (2.0 * intersection + 1) / (K.sum(y_true_f) + K.sum(y_pred_f) + 1)
     
-    def j_iou_loss(self, y_true, y_pred):
-        return 1 - self.j_iou(y_true, y_pred)
-
+    def j_dice_coef_loss(self, y_true, y_pred):
+        return 1-self.j_dice_coef(y_true, y_pred)
+    
     def j_iou(self, y_true, y_pred):
         y_true_f = K.flatten(y_true)
         y_pred_f = K.flatten(y_pred)
         intersection = K.sum(y_true_f * y_pred_f)
         return (intersection + 1) / (K.sum(y_true_f) + K.sum(y_pred_f) - intersection + 1)
-
-    def j_dice_coef_loss(self, y_true, y_pred):
-        return 1-self.j_dice_coef(y_true, y_pred)
-        
-    def j_precision(self, y_true, y_pred):
-        '''Calculates the precision, a metric for multi-label classification of
-        how many selected items are relevant.
-        '''
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-        precision = true_positives / (predicted_positives + K.epsilon())
-        return precision
-        
-    def j_recall(self, y_true, y_pred):
-        '''Calculates the recall, a metric for multi-label classification of
-        how many relevant items are selected.
-        '''
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-        recall = true_positives / (possible_positives + K.epsilon())
-        return recall
-        
-    def j_accuracy(self, y_true, y_pred):
-        '''Calculates the mean accuracy rate across all predictions for binary
-        classification problems.
-        '''
-        return K.mean(K.equal(y_true, K.round(y_pred)))
-
-    # #Implement args - remove hardcoding
-    # def reduce_lr(self):
-    #     return tf.keras.callbacks.ReduceLROnPlateau(
-    #             monitor='val_loss',  # Metric to monitor
-    #             factor=0.1,  # Factor by which the learning rate will be reduced
-    #             patience=3,  # Number of epochs with no improvement after which learning rate will be reduced
-    #             verbose=1)  # Print a message when learning rate is reduced
     
-    # def early_stopper(self):
-    #     return tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)
-    
-    # def checkpoint(self):
-    #     return tf.keras.callbacks.ModelCheckpoint(
-    #             filepath='best_unet2D.h5',
-    #             monitor='val_loss',
-    #             save_best_only=True,
-    #             verbose=1)
+    def j_iou_loss(self, y_true, y_pred):
+        return 1 - self.j_iou(y_true, y_pred)
