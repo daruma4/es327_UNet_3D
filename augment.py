@@ -2,12 +2,20 @@ import albumentations as A
 import cv2
 
 def do_albumentations(transform, img_list, mask_list, slice_count):
-    #say 384 images
-    #24 3d slices
-    #for each 3d slice
-    #   load slice_count images
-    #   transform
-    #   add to aug_list
+    """Completes 3 augmentations to a batch, of length slice_count, on img_list and mask_list
+
+    Args:
+        transform (_type_): Albumentations transform
+        img_list (list): List of images
+        mask_list (list): List of masks
+        slice_count (int): Slice count
+
+    Raises:
+        Exception: Key not in transformed dictionary.
+
+    Returns:
+        list: augmented_raw_list, augmented_mask_list
+    """
     slice_count_3d = range(len(img_list))
     augemented_raw_list = []
     augmented_mask_list = []

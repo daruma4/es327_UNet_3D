@@ -11,7 +11,9 @@ __all__ = [
     'jaccard_loss', 'bce_jaccard_loss', 'cce_jaccard_loss',
     'dice_loss', 'bce_dice_loss', 'cce_dice_loss',
 ]
-
+# Cloned from GitHub. Complies with license.
+# Repository: https://github.com/1044197988/TF.Keras-Commonly-used-models
+# User: https://github.com/1044197988
 
 # ============================== Jaccard Losses ==============================
 

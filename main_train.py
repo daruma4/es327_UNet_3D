@@ -39,6 +39,8 @@ PATH_NIFTI_META = os.path.join(PATH_NIFTI, "meta.json")
 #||                          #||
 ################################
 def main_nifti():
+     """Converts Nifti file into individual images saved to PATH_RAW_IMAGE and PATH_RAW_MASK
+     """
      #Load Nifti metadata and create niftisaver instance
      try:
           metadata = json.load(open(PATH_NIFTI_META))
@@ -71,6 +73,11 @@ def main_nifti():
 #||                          #||
 ################################
 def main_3dparser(slice_count=16):
+     """Prepares images in PATH_RAW_IMAGE_2D for training. Ensures batches of exactly length slice_count can be made.
+
+     Args:
+         slice_count (int, optional): Bath size. Defaults to 16.
+     """
      raw2d_dict = {}
      raw2d_folder_list = [os.path.join(PATH_RAW_IMAGE_2D, each) for each in sorted(os.listdir(PATH_RAW_IMAGE_2D))]
      for path in raw2d_folder_list:
@@ -101,6 +108,11 @@ def main_3dparser(slice_count=16):
                niftiSave.save_img_to_path(img=mask, path=os.path.join(PATH_RAW_MASK_3D, mask_file_name), mask_bool=True)
 
 def visualise(image_3d):
+     """Shows image as subplots of slices
+
+     Args:
+         image_3d (_type_): batch of images
+     """
      fig, subplots = plt.subplots(4, 4)
      for idx, ax in enumerate(subplots.flatten()):
           ax.imshow(image_3d[idx,:,:,:], cmap="gray")
@@ -111,6 +123,8 @@ def visualise(image_3d):
 #||                          #||
 ################################
 def main_augmentation(slice_count=16):
+     """Uses AUGMENTATIONS_LIST to augment all images in PATH_RAW_IMAGE_3D and PATH_RAW_MASK_3D. Saves to PATH_AUG_IMAGE and PATH_AUG_MASK
+     """
      # edit so augments slice_count at a time (e.g. 16 images augmented the same)
      additional_targets = {}
      for i in range(1, slice_count):
@@ -140,7 +154,17 @@ def main_augmentation(slice_count=16):
 #||                          #||
 ################################
 def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filter_num=32, batch_size=1, learning_rate=0.0001):
-     #Should setup to change filter_num, batch_size and learning_rate
+     """Trains U-Net 3D model and saves epoch data and model (incl. weights) to DEFAULT_LOGS_DIR.
+
+     Args:
+         img_height (int, optional): Individual image height. Defaults to 256.
+         img_width (int, optional): Individual image width. Defaults to 256.
+         img_channels (int, optional): Amount of channels in image. Defaults to 1.
+         epochs (int, optional): Epoch count. Defaults to 100.
+         filter_num (int, optional): Number of filters. Defaults to 32.
+         batch_size (int, optional): Batch size. Defaults to 1.
+         learning_rate (float, optional): Learning rate. Defaults to 0.0001.
+     """
      unetObj = unet.unet_model(filter_num=filter_num, img_height=img_height, img_width=img_width, img_channels=img_channels, epochs=epochs)
      raw_images = niftiSave.load_folder_3d(PATH_AUG_IMAGE, normalize=True)
      raw_masks = niftiSave.load_folder_3d(PATH_AUG_MASK, normalize=True)
@@ -149,8 +173,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
      loss = unetObj.j_dice_coef_loss
-     ## SHOULD EXPERIMENT WITH SMOOTHING VALUE IN J_IOU_LOSS
-     metrics = [unetObj.j_dice_coef, unetObj.j_iou]
+     metrics = [unetObj.j_dice_coef, unetObj.j_iou, losses.bce_dice_loss, losses.bce_jaccard_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
      #Prepare callbacks
@@ -160,18 +183,22 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=myModelSavePath,monitor='val_loss',save_best_only=True,verbose=1,mode="min")
 
 
-     #Do fit
+     #Do fit 
      myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, validation_batch_size=1, callbacks=[earlystopper, reduce_lr, checkpoint_callback])
      myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
      np.save(myModelHistorySavePath, myModel_trained.history)
 
-# main_trainer(epochs=10, filter_num=32, batch_size=1, learning_rate=0.0001)
 # ################################
 # #||                          #||
 # #||        Predictor         #||
 # #||                          #||
 # ################################
 def predict(model_path: str):
+     """Predicts a random batch of images
+
+     Args:
+         model_path (str): Path to desired model.
+     """
      predictorObj = predictor.predictor(model=models.load_model(model_path, compile=False), 
                          image_array=niftiSave.load_images(PATH_AUG_IMAGE, normalize=True), 
                          mask_array=niftiSave.load_images(PATH_AUG_MASK, normalize=True))
@@ -188,5 +215,3 @@ def predict(model_path: str):
           subplot.set_xticks([])
           subplot.set_yticks([])
      plt.show()
-
-# predict(os.path.join(DEFAULT_LOGS_DIR, "fn32-bs16-lr0.0001.h5"))
