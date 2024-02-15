@@ -174,7 +174,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = losses.dice_loss
+     loss = losses.bce_jaccard_loss
      metrics = [unetObj.j_dice_coef, unetObj.j_iou, losses.bce_dice_loss, losses.dice_loss, losses.bce_jaccard_loss, losses.jaccard_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
@@ -186,7 +186,7 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
 
      #Do fit 
-     myModel_trained = myModel.fit(x=x_train, y=y_train, validation_data=(x_val, y_val), batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, validation_batch_size=1, callbacks=[earlystopper, reduce_lr, checkpoint_callback])
+     myModel_trained = myModel.fit(x=x_train, y=y_train, validation_data=(x_val, y_val), batch_size=batch_size, epochs=unetObj.epochs, shuffle=False, validation_batch_size=batch_size, callbacks=[earlystopper, reduce_lr, checkpoint_callback])
      myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
      np.save(myModelHistorySavePath, myModel_trained.history)
 
