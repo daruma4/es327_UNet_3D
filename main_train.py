@@ -13,7 +13,7 @@ import niftiSave
 import unet
 import predictor
 import augment
-
+import splitter
 import losses
 
 #Current working directory of the project
@@ -169,11 +169,13 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
      raw_images = niftiSave.load_folder_3d(PATH_AUG_IMAGE, normalize=True)
      raw_masks = niftiSave.load_folder_3d(PATH_AUG_MASK, normalize=True)
 
+     x_train, x_val, y_train, y_val = splitter.train_val_splitter(raw_images, raw_masks)
+
      #Prepare model
      myModel = unetObj.create_unet_model(filter_num=filter_num)
      optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-     loss = unetObj.j_dice_coef_loss
-     metrics = [unetObj.j_dice_coef, unetObj.j_iou, losses.bce_dice_loss, losses.bce_jaccard_loss]
+     loss = losses.dice_loss
+     metrics = [unetObj.j_dice_coef, unetObj.j_iou, losses.bce_dice_loss, losses.dice_loss, losses.bce_jaccard_loss, losses.jaccard_loss]
      myModel.compile(optimizer=optimizer, loss=loss, metrics=metrics)
 
      #Prepare callbacks
@@ -184,10 +186,12 @@ def main_trainer(img_height=256, img_width=256, img_channels=1, epochs=100, filt
 
 
      #Do fit 
-     myModel_trained = myModel.fit(x=raw_images, y=raw_masks, validation_split=0.25, batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, validation_batch_size=1, callbacks=[earlystopper, reduce_lr, checkpoint_callback])
+     myModel_trained = myModel.fit(x=x_train, y=y_train, validation_data=(x_val, y_val), batch_size=batch_size, epochs=unetObj.epochs, shuffle=True, validation_batch_size=1, callbacks=[earlystopper, reduce_lr, checkpoint_callback])
      myModelHistorySavePath = os.path.join(DEFAULT_LOGS_DIR, f"3d_fn{filter_num}-bs{batch_size}-lr{learning_rate}.npy")
      np.save(myModelHistorySavePath, myModel_trained.history)
 
+#default 32, 1, 0.0001
+main_trainer(epochs=10, filter_num=32, batch_size=1, learning_rate=0.0001)
 # ################################
 # #||                          #||
 # #||        Predictor         #||
